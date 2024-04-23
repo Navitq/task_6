@@ -1,9 +1,14 @@
+import { Container } from "react-bootstrap";
+import {MainPage} from "./components/MainPage"
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+
 function App() {
-  return (
-    <div className="App">
-      MyApp
-    </div>
-  );
+    return (
+        <Container>
+            <MainPage></MainPage>
+        </Container>
+    );
 }
 
 export default App;
