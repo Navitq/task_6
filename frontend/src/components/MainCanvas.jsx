@@ -10,7 +10,8 @@ import {
 import io from "socket.io-client";
 import "./css/index.css";
 
-const socket = io("ws://127.0.0.1:4000");
+const socket = io();
+let initCounter = false;
 const PERSISTENCE_KEY = "my-persistence-key";
 
 function MainCanvas(props) {
@@ -21,38 +22,112 @@ function MainCanvas(props) {
     );
 
     useEffect(() => {
-		
-        socket.on("ping", () => {
-			console.log(222);
-			socket.emit("init",`${PERSISTENCE_KEY}`);
-            
-        });
-        socket.on("init", (data) => {
-			console.log(data)
-            //const snapshot = JSON.parse(data);
-            //localStorage.emit(PERSISTENCE_KEY, JSON.stringify(snapshot));
-        });
-        socket.on("message", (err) => {
-            console.log(err, 123444);
+
+
+        socket.on("connect", () => {
+            if (PERSISTENCE_KEY) {
+                try {
+                    console.log(111111111111111111111111111);
+                    socket.emit("init", `${PERSISTENCE_KEY}`);
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+            socket.on("init", async (data) => {
+                console.log(22222222222222222222222222222)
+
+                initCounter = false;
+                const snapshot = JSON.parse(data);
+                store.mergeRemoteChanges(()=>{store.loadSnapshot(snapshot)});
+                initCounter = true;
+            });
+
+            socket.on(`${PERSISTENCE_KEY}_add`, (data) => {
+                console.log(333333333333333333333333333)
+                
+                const snapshot = JSON.parse(data);
+                initCounter = false;
+                store.put([snapshot])
+                initCounter = true;
+            });
+
+            socket.on(`${PERSISTENCE_KEY}_rem`, (data) => {
+                console.log(444444444)
+                
+                const snapshot = JSON.parse(data);
+                initCounter = false;
+                store.remove([snapshot.id]);
+                initCounter = true;
+            });
+
+            socket.on(`${PERSISTENCE_KEY}_upd`, (data) => {
+                console.log(5555555)
+                const snapshot = JSON.parse(data);
+                initCounter = false;
+
+                //store.put([snapshot])
+                store.update(snapshot.id, updater(snapshot) );
+                initCounter = true;
+
+            });
+
         });
     }, []);
 
     useLayoutEffect(() => {
-        const persistedSnapshot = localStorage.getItem(PERSISTENCE_KEY);
-
-        if (persistedSnapshot) {
-            try {
-                const snapshot = JSON.parse(persistedSnapshot);
-                store.loadSnapshot(snapshot);
-            } catch (error) {
-                console.log(error);
-            }
-        }
         const cleanupFn = store.listen(
-            throttle(() => {
-                const snapshot = store.getSnapshot();
-                localStorage.setItem(PERSISTENCE_KEY, JSON.stringify(snapshot));
-            }, 500)
+            throttle((change) => {
+                
+                console.log(initCounter);
+                if (true && change.source !== "remote") {
+                    let snapshot;
+                    for (const record of Object.values(change.changes.added)) {
+                        
+                        if (record.typeName === "shape") {
+                            snapshot = store.getSnapshot();
+
+
+                            socket.emit(
+                                "message_add",
+                                PERSISTENCE_KEY,
+                                JSON.stringify(record)
+                            );
+                            
+                        }
+                    }
+
+                    for (const [from, to] of Object.values(change.changes.updated)) {
+                        
+                        if (
+                            from.id.startsWith("shape") &&
+                            to.id.startsWith("shape")
+                        ) {
+                            snapshot = store.getSnapshot();
+                            console.log(to)
+                            socket.emit(
+                                "message_upd",
+                                PERSISTENCE_KEY,
+                                JSON.stringify(to)
+                            );
+                        }
+                    }
+
+                    for (const record of Object.values(
+                        change.changes.removed
+                    )) {
+                        if (record.typeName === "shape") {
+                            console.log(record)
+                            snapshot = store.getSnapshot();
+                            socket.emit(
+                                "message_rem",
+                                PERSISTENCE_KEY,
+                                JSON.stringify(record)
+                            );
+                        }
+                    }
+                    
+                }
+            })
         );
 
         return () => {
