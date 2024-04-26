@@ -23,14 +23,9 @@ function MainCanvas(props) {
 
     useEffect(() => {
         let snapshot = store.getSnapshot();
-        console.log(snapshot);
-        window.addEventListener("reload", () => {
-            alert(123123);
-        });
-        console.log(12123);
+
         if (PERSISTENCE_KEY) {
             try {
-                console.log(111111111111111111111111111);
                 props.socket.emit("init", `${PERSISTENCE_KEY}`);
             } catch (error) {
                 console.log(error);
@@ -38,7 +33,6 @@ function MainCanvas(props) {
         }
 
         props.socket.on("init", async (data) => {
-            console.log(22222222222222222222222222222);
 
             initCounter = false;
             const snapshot = JSON.parse(data);
@@ -49,7 +43,6 @@ function MainCanvas(props) {
         });
 
         props.socket.on(`${PERSISTENCE_KEY}_add`, (data) => {
-            console.log(333333333333333333333333333);
 
             const snapshot = JSON.parse(data);
             initCounter = false;
@@ -58,7 +51,6 @@ function MainCanvas(props) {
         });
 
         props.socket.on(`${PERSISTENCE_KEY}_rem`, (data) => {
-            console.log(444444444);
 
             const snapshot = JSON.parse(data);
             initCounter = false;
@@ -69,7 +61,6 @@ function MainCanvas(props) {
         });
 
         props.socket.on(`${PERSISTENCE_KEY}_upd`, async (data) => {
-            console.log(5555555);
             const snapshot = JSON.parse(data);
             initCounter = false;
 
@@ -124,7 +115,6 @@ function MainCanvas(props) {
                         ) {
 
                             if (dataStateUpd.current) {
-                                console.log(dataStateUpd.current)
                                 dataStateUpd.current = false;
                                 setTimeout(()=>{
                                     dataStateUpd.current = true;
@@ -145,7 +135,6 @@ function MainCanvas(props) {
                         change.changes.removed
                     )) {
                         if (record.typeName === "shape") {
-                            console.log(record);
                             props.socket.emit(
                                 "message_rem",
                                 PERSISTENCE_KEY,
