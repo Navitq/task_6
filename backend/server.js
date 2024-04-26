@@ -38,7 +38,6 @@ async function dbUpdate(canvasName, canvasData, nameUser, decr, base64) {
             );
             return;
         } else {
-            console.log(canvasName);
             await db.query(
                 `UPDATE canvasStore SET data='${canvasData}'  WHERE name='${canvasName}'`
             );
@@ -49,7 +48,6 @@ async function dbUpdate(canvasName, canvasData, nameUser, decr, base64) {
 }
 
 app.get("*", (req, res) => {
-    console.log(123);
 });
 
 io.on("connect", (socket) => {
@@ -75,7 +73,6 @@ io.on("connect", (socket) => {
         socket.broadcast.emit(`${canvasName}_add`, `${canvasData}`);
     });
     socket.on("remove_canvas",(canvasName) => {
-        console.log(canvasName, "920a3e74-cb07-489a-b907-a4716ba36676")
         try {
             db.query(`DELETE FROM canvasStore WHERE name='${canvasName}'`);
         } catch (err) {
@@ -95,7 +92,6 @@ io.on("connect", (socket) => {
 });
 
 server.listen(4000, async (req, res) => {
-    console.log(server._connectionKey);
     try {
         const result = await db.query(`
         CREATE TABLE IF NOT EXISTS canvasStore(

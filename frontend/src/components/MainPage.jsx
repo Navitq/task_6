@@ -19,11 +19,9 @@ function MainPage(props) {
     let [boardLink, setBoardLink] = useState(null);
     useEffect(() => {
         socket.on("connect", () => {
-            console.log(12132);
             socket.emit("boards");
             socket.on("boards", (res) => {
                 let boards = JSON.parse(res);
-                console.log(boards);
                 let jsxBoards = boards.map((el) => {
                     return (
                         <Route
@@ -42,7 +40,6 @@ function MainPage(props) {
                 setBoardList(jsxBoards);
 
                 let navLink = boards.map((el) => {
-                    console.log(`${el.name}`);
                     return (
                         <NavLink
                             key={uuidv4()}
