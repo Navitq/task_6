@@ -27,7 +27,7 @@ function Introduction() {
         </Accordion>
         
         <Ratio key={"16x9"} aspectRatio={"16x9"} className='mb-4'>
-            <iframe src="https://www.youtube.com/embed/skfogOvJcpA?si=lkuYiASfVHBVZWCt" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+            <iframe src="https://www.youtube.com/embed/bhfdyzWWFTY?si=C-DkeX2cAJREIw6G" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
         </Ratio>
 
         <Carousel>

@@ -66,7 +66,12 @@ io.on("connect", (socket) => {
         const result = await db.query(
             `SELECT * from canvasStore WHERE name='${canvasName}'`
         );
-        socket.emit("init", result.rows[0].data);
+        
+        try {
+            socket.emit("init", result.rows[0].data);
+        } catch (err) {
+            console.error(err);
+        }
     });
 
     socket.on("message_add", (canvasName, canvasData) => {
