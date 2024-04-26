@@ -7,33 +7,35 @@ import {
     defaultShapeUtils,
     throttle,
 } from "tldraw";
-import io from "socket.io-client";
 import "./css/index.css";
 
-const socket = io();
+
 let initCounter = false;
-const PERSISTENCE_KEY = "my-persistence-key";
 
 function MainCanvas(props) {
     const editor = useEditor();
+    let PERSISTENCE_KEY = `${props.boardName}`;
 
     const [store] = useState(() =>
         createTLStore({ shapeUtils: defaultShapeUtils })
     );
+    
 
     useEffect(() => {
-
-
-        socket.on("connect", () => {
+        let snapshot = store.getSnapshot();
+        console.log(snapshot)
+        window.addEventListener("reload",()=>{alert(123123)})
+            console.log(12123)
             if (PERSISTENCE_KEY) {
                 try {
                     console.log(111111111111111111111111111);
-                    socket.emit("init", `${PERSISTENCE_KEY}`);
+                    props.socket.emit("init", `${PERSISTENCE_KEY}`);
                 } catch (error) {
                     console.log(error);
                 }
             }
-            socket.on("init", async (data) => {
+
+            props.socket.on("init", async (data) => {
                 console.log(22222222222222222222222222222)
 
                 initCounter = false;
@@ -42,7 +44,7 @@ function MainCanvas(props) {
                 initCounter = true;
             });
 
-            socket.on(`${PERSISTENCE_KEY}_add`, (data) => {
+            props.socket.on(`${PERSISTENCE_KEY}_add`, (data) => {
                 console.log(333333333333333333333333333)
                 
                 const snapshot = JSON.parse(data);
@@ -51,43 +53,48 @@ function MainCanvas(props) {
                 initCounter = true;
             });
 
-            socket.on(`${PERSISTENCE_KEY}_rem`, (data) => {
+            props.socket.on(`${PERSISTENCE_KEY}_rem`, (data) => {
                 console.log(444444444)
                 
                 const snapshot = JSON.parse(data);
                 initCounter = false;
-                store.remove([snapshot.id]);
+                store.mergeRemoteChanges(()=>{store.remove([snapshot.id])});
                 initCounter = true;
             });
 
-            socket.on(`${PERSISTENCE_KEY}_upd`, (data) => {
+            props.socket.on(`${PERSISTENCE_KEY}_upd`, async (data) => {
                 console.log(5555555)
                 const snapshot = JSON.parse(data);
                 initCounter = false;
 
                 //store.put([snapshot])
-                store.update(snapshot.id, updater(snapshot) );
+                store.mergeRemoteChanges(()=>{store.update(snapshot.id, (old)=>{return snapshot})}) ;
                 initCounter = true;
 
             });
+            
+            let intervalId = setInterval(async ()=>{
+                let snapshot = store.getSnapshot();
 
-        });
+                props.socket.emit("message_init", PERSISTENCE_KEY ,JSON.stringify(snapshot) )
+            },1000)
+
+           
+            return () => {
+                clearInterval(intervalId);
+              };
     }, []);
 
     useLayoutEffect(() => {
         const cleanupFn = store.listen(
             throttle((change) => {
                 
-                console.log(initCounter);
-                if (true && change.source !== "remote") {
-                    let snapshot;
+                if (initCounter && change.source !== "remote") {
                     for (const record of Object.values(change.changes.added)) {
                         
                         if (record.typeName === "shape") {
-                            snapshot = store.getSnapshot();
 
-
-                            socket.emit(
+                            props.socket.emit(
                                 "message_add",
                                 PERSISTENCE_KEY,
                                 JSON.stringify(record)
@@ -102,9 +109,9 @@ function MainCanvas(props) {
                             from.id.startsWith("shape") &&
                             to.id.startsWith("shape")
                         ) {
-                            snapshot = store.getSnapshot();
-                            console.log(to)
-                            socket.emit(
+                            console.log("!!!!!!!!!!!!!!!!!!!!!")
+                            console.log(PERSISTENCE_KEY)
+                            props.socket.emit(
                                 "message_upd",
                                 PERSISTENCE_KEY,
                                 JSON.stringify(to)
@@ -117,8 +124,7 @@ function MainCanvas(props) {
                     )) {
                         if (record.typeName === "shape") {
                             console.log(record)
-                            snapshot = store.getSnapshot();
-                            socket.emit(
+                            props.socket.emit(
                                 "message_rem",
                                 PERSISTENCE_KEY,
                                 JSON.stringify(record)
