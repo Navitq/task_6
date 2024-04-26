@@ -60,7 +60,7 @@ function Introduction() {
         
         <Container className='d-flex justify-content-center mt-4'>
             <Button variant="primary" size="lg" active width="fit-content">
-                <NavLink className="nav-link" to="/sing_up" >Try it for free</NavLink>
+                <NavLink className="nav-link" to="/boards" >Try it for free</NavLink>
             </Button>
         </Container>
     </Container>
