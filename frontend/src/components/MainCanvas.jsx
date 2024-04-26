@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState, useEffect } from "react";
+import React, { useLayoutEffect, useState, useEffect, useRef } from "react";
 import {
     Tldraw,
     track,
@@ -9,113 +9,135 @@ import {
 } from "tldraw";
 import "./css/index.css";
 
-
 let initCounter = false;
+let dataUpd = [];
+
 
 function MainCanvas(props) {
-    const editor = useEditor();
+    let dataStateUpd = useRef(true);
     let PERSISTENCE_KEY = `${props.boardName}`;
 
     const [store] = useState(() =>
         createTLStore({ shapeUtils: defaultShapeUtils })
     );
-    
 
     useEffect(() => {
         let snapshot = store.getSnapshot();
-        console.log(snapshot)
-        window.addEventListener("reload",()=>{alert(123123)})
-            console.log(12123)
-            if (PERSISTENCE_KEY) {
-                try {
-                    console.log(111111111111111111111111111);
-                    props.socket.emit("init", `${PERSISTENCE_KEY}`);
-                } catch (error) {
-                    console.log(error);
-                }
+        console.log(snapshot);
+        window.addEventListener("reload", () => {
+            alert(123123);
+        });
+        console.log(12123);
+        if (PERSISTENCE_KEY) {
+            try {
+                console.log(111111111111111111111111111);
+                props.socket.emit("init", `${PERSISTENCE_KEY}`);
+            } catch (error) {
+                console.log(error);
             }
+        }
 
-            props.socket.on("init", async (data) => {
-                console.log(22222222222222222222222222222)
+        props.socket.on("init", async (data) => {
+            console.log(22222222222222222222222222222);
 
-                initCounter = false;
-                const snapshot = JSON.parse(data);
-                store.mergeRemoteChanges(()=>{store.loadSnapshot(snapshot)});
-                initCounter = true;
+            initCounter = false;
+            const snapshot = JSON.parse(data);
+            store.mergeRemoteChanges(() => {
+                store.loadSnapshot(snapshot);
             });
+            initCounter = true;
+        });
 
-            props.socket.on(`${PERSISTENCE_KEY}_add`, (data) => {
-                console.log(333333333333333333333333333)
-                
-                const snapshot = JSON.parse(data);
-                initCounter = false;
-                store.put([snapshot])
-                initCounter = true;
+        props.socket.on(`${PERSISTENCE_KEY}_add`, (data) => {
+            console.log(333333333333333333333333333);
+
+            const snapshot = JSON.parse(data);
+            initCounter = false;
+            store.put([snapshot]);
+            initCounter = true;
+        });
+
+        props.socket.on(`${PERSISTENCE_KEY}_rem`, (data) => {
+            console.log(444444444);
+
+            const snapshot = JSON.parse(data);
+            initCounter = false;
+            store.mergeRemoteChanges(() => {
+                store.remove([snapshot.id]);
             });
+            initCounter = true;
+        });
 
-            props.socket.on(`${PERSISTENCE_KEY}_rem`, (data) => {
-                console.log(444444444)
-                
-                const snapshot = JSON.parse(data);
-                initCounter = false;
-                store.mergeRemoteChanges(()=>{store.remove([snapshot.id])});
-                initCounter = true;
-            });
+        props.socket.on(`${PERSISTENCE_KEY}_upd`, async (data) => {
+            console.log(5555555);
+            const snapshot = JSON.parse(data);
+            initCounter = false;
 
-            props.socket.on(`${PERSISTENCE_KEY}_upd`, async (data) => {
-                console.log(5555555)
-                const snapshot = JSON.parse(data);
-                initCounter = false;
-
-                //store.put([snapshot])
-                store.mergeRemoteChanges(()=>{store.update(snapshot.id, (old)=>{return snapshot})}) ;
-                initCounter = true;
-
+            snapshot.forEach((el) => {
+                store.mergeRemoteChanges(() => {
+                    store.update(el.id, (old) => {
+                        return el;
+                    });
+                });
             });
             
-            let intervalId = setInterval(async ()=>{
-                let snapshot = store.getSnapshot();
+            initCounter = true;
+        });
 
-                props.socket.emit("message_init", PERSISTENCE_KEY ,JSON.stringify(snapshot) )
-            },1000)
+        let intervalId = setInterval(async () => {
+            let snapshot = store.getSnapshot();
 
-           
-            return () => {
-                clearInterval(intervalId);
-              };
+            props.socket.emit(
+                "message_init",
+                PERSISTENCE_KEY,
+                JSON.stringify(snapshot)
+            );
+        }, 1000);
+
+        return () => {
+            clearInterval(intervalId);
+        };
     }, []);
+
+
 
     useLayoutEffect(() => {
         const cleanupFn = store.listen(
             throttle((change) => {
-                
                 if (initCounter && change.source !== "remote") {
                     for (const record of Object.values(change.changes.added)) {
-                        
                         if (record.typeName === "shape") {
-
                             props.socket.emit(
                                 "message_add",
                                 PERSISTENCE_KEY,
                                 JSON.stringify(record)
                             );
-                            
                         }
                     }
 
-                    for (const [from, to] of Object.values(change.changes.updated)) {
-                        
+                    for (const [from, to] of Object.values(
+                        change.changes.updated
+                    )) {
                         if (
                             from.id.startsWith("shape") &&
                             to.id.startsWith("shape")
                         ) {
-                            console.log("!!!!!!!!!!!!!!!!!!!!!")
-                            console.log(PERSISTENCE_KEY)
-                            props.socket.emit(
-                                "message_upd",
-                                PERSISTENCE_KEY,
-                                JSON.stringify(to)
-                            );
+
+                            if (dataStateUpd.current) {
+                                console.log(dataStateUpd.current)
+                                dataStateUpd.current = false;
+                                setTimeout(()=>{
+                                    dataStateUpd.current = true;
+                                    props.socket.emit(
+                                        "message_upd",
+                                        PERSISTENCE_KEY,
+                                        JSON.stringify(dataUpd)
+                                    );
+                                    dataUpd = [];
+                                },200)
+                            }
+                            dataUpd.push(to)
+                           
                         }
                     }
 
@@ -123,7 +145,7 @@ function MainCanvas(props) {
                         change.changes.removed
                     )) {
                         if (record.typeName === "shape") {
-                            console.log(record)
+                            console.log(record);
                             props.socket.emit(
                                 "message_rem",
                                 PERSISTENCE_KEY,
@@ -131,7 +153,6 @@ function MainCanvas(props) {
                             );
                         }
                     }
-                    
                 }
             })
         );
